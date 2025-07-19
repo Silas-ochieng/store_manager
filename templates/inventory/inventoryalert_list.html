@@ -1,0 +1,13 @@
+{% extends "base/base.html" %}
+{% block content %}
+  <h1>Inventory Alerts</h1>
+  <ul>
+    {% for alert in inventoryalert_list %}
+      <li>
+        {{ alert.product.name }}: {{ alert.message }} (Created: {{ alert.created_at }})
+      </li>
+    {% empty %}
+      <li>No alerts found.</li>
+    {% endfor %}
+  </ul>
+{% endblock %}

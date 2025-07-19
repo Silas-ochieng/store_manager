@@ -1,0 +1,11 @@
+{% extends "base/base.html" %}
+{% block content %}
+  <h1>Suppliers</h1>
+  <ul>
+    {% for supplier in suppliers %}
+      <li>{{ supplier.name }}</li>
+    {% empty %}
+      <li>No suppliers found.</li>
+    {% endfor %}
+  </ul>
+{% endblock %}

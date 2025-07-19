@@ -1,0 +1,109 @@
+{% extends 'orders/base_orders.html' %}
+{% block title %}{% if object %}Edit{% else %}Create{% endif %} Order{% endblock %}
+
+{% block orders_content %}
+<div class="container mx-auto my-6">
+    <h2 class="text-2xl font-semibold mb-4">{% if object %}Edit{% else %}Create{% endif %} Order</h2>
+
+    <form method="post" class="bg-white p-4 rounded shadow-sm">
+        {% csrf_token %}
+        
+        <!-- Main Order Form Fields -->
+        <div class="mb-6 p-4 border rounded">
+            <h3 class="text-lg font-medium mb-3">Order Information</h3>
+            {% for field in form %}
+                <div class="mb-3">
+                    <label class="block text-gray-700 text-sm font-bold mb-1">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.errors %}
+                        <div class="text-red-500 text-xs italic">
+                            {{ field.errors|striptags }}
+                        </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Order Items Formset -->
+        <div class="mb-6 p-4 border rounded">
+            <h3 class="text-lg font-medium mb-3">Order Items</h3>
+            {{ formset.management_form }}
+            
+            <div id="order-items-container">
+                {% for item_form in formset %}
+                    <div class="item-form mb-4 p-3 border rounded">
+                        {{ item_form.id }}
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div>
+                                <label class="block text-gray-700 text-sm font-bold mb-1">Product</label>
+                                {{ item_form.product }}
+                            </div>
+                            <div>
+                                <label class="block text-gray-700 text-sm font-bold mb-1">Quantity</label>
+                                {{ item_form.quantity }}
+                            </div>
+                            <div>
+                                <label class="block text-gray-700 text-sm font-bold mb-1">Price</label>
+                                {{ item_form.price }}
+                            </div>
+                            <div class="flex items-end">
+                                {% if formset.can_delete %}
+                                    <label class="flex items-center">
+                                        {{ item_form.DELETE }} Remove
+                                    </label>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% if item_form.errors %}
+                            <div class="text-red-500 text-xs italic mt-2">
+                                {{ item_form.errors|striptags }}
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+            
+            <button type="button" id="add-item" class="mt-2 btn btn-sm btn-outline-primary">
+                Add Another Item
+            </button>
+        </div>
+
+        <div class="flex justify-between mt-4">
+            <button type="submit" class="btn btn-primary">Save Order</button>
+            <a href="{% url 'orders:order_list' %}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add new item form
+    document.getElementById('add-item').addEventListener('click', function() {
+        const formCount = document.getElementById('id_items-TOTAL_FORMS');
+        const container = document.getElementById('order-items-container');
+        const totalForms = parseInt(formCount.value);
+        
+        // Create a new form by cloning the last form
+        const newForm = container.children[totalForms - 1].cloneNode(true);
+        
+        // Update all the IDs and names in the new form
+        const regex = new RegExp('items-' + (totalForms - 1) + '-', 'g');
+        newForm.innerHTML = newForm.innerHTML.replace(regex, 'items-' + totalForms + '-');
+        
+        // Clear the values
+        const inputs = newForm.querySelectorAll('input, select');
+        inputs.forEach(input => {
+            if (input.name.includes('product') || input.name.includes('quantity') || input.name.includes('price')) {
+                input.value = '';
+            }
+        });
+        
+        // Append the new form
+        container.appendChild(newForm);
+        
+        // Update the form count
+        formCount.value = totalForms + 1;
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,108 @@
+{% extends "inventory/base_inventory.html" %}
+
+{% block inventory_title %}{{ object.name }} - Category Details{% endblock %}
+
+{% block inventory_heading %}{{ object.name }}{% endblock %}
+
+{% block inventory_content %}
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white border-bottom-0 py-3">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2 class="h5 mb-0">Category Details</h2>
+            <div class="btn-group">
+                <a href="{% url 'inventory:category_update' object.id %}" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-edit me-1"></i> Edit
+                </a>
+                <a href="{% url 'inventory:category_delete' object.id %}" class="btn btn-sm btn-outline-danger">
+                    <i class="fas fa-trash me-1"></i> Delete
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card-body">
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <h3 class="h6 text-muted">Basic Information</h3>
+                <dl class="row">
+                    <dt class="col-sm-4">Name</dt>
+                    <dd class="col-sm-8">{{ object.name }}</dd>
+                    
+                    <dt class="col-sm-4">Description</dt>
+                    <dd class="col-sm-8">{{ object.description|default:"No description" }}</dd>
+                    
+                    <dt class="col-sm-4">Created</dt>
+                    <dd class="col-sm-8">{{ object.created_at|date:"M d, Y" }}</dd>
+                    
+                    <dt class="col-sm-4">Last Updated</dt>
+                    <dd class="col-sm-8">{{ object.updated_at|date:"M d, Y" }}</dd>
+                </dl>
+            </div>
+            
+            <div class="col-md-6">
+                <h3 class="h6 text-muted">Statistics</h3>
+                <dl class="row">
+                    <dt class="col-sm-4">Total Products</dt>
+                    <dd class="col-sm-8">
+                        <span class="badge bg-primary rounded-pill">
+                            {{ product_count }}
+                        </span>
+                    </dd>
+                    
+                    <dt class="col-sm-4">Active Products</dt>
+                    <dd class="col-sm-8">
+                        <span class="badge bg-success rounded-pill">
+                            {{ active_product_count }}
+                        </span>
+                    </dd>
+                </dl>
+            </div>
+        </div>
+        
+        <div class="mt-4">
+            <h3 class="h6 text-muted mb-3">Products in this Category</h3>
+            
+            {% if products %}
+            <div class="table-responsive">
+                <table class="table table-sm table-hover">
+                    <thead class="bg-light">
+                        <tr>
+                            <th>Product</th>
+                            <th>SKU</th>
+                            <th>Price</th>
+                            <th>Stock</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for product in products %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'inventory:product_detail' product.id %}" class="text-decoration-none">
+                                    {{ product.name }}
+                                </a>
+                            </td>
+                            <td>{{ product.sku }}</td>
+                            <td>${{ product.price|floatformat:2 }}</td>
+                            <td>{{ product.quantity }}</td>
+                            <td>
+                                {% if product.is_active %}
+                                    <span class="badge bg-success">Active</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Inactive</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                No products found in this category.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

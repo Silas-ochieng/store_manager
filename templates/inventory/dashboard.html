@@ -1,0 +1,117 @@
+{% extends "inventory/base_inventory.html" %}
+
+{% block inventory_content %}
+<div class="container mx-auto px-4 py-6">
+    <h1 class="text-3xl font-bold text-gray-800 mb-6">Inventory Dashboard</h1>
+    
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <!-- Total Products -->
+        <div class="bg-white rounded-lg shadow p-6 border-t-4 border-blue-500">
+            <h3 class="text-gray-500 uppercase text-sm font-medium">Total Products</h3>
+            <p class="text-2xl font-bold mt-2">{{ total_products }}</p>
+        </div>
+        
+        <!-- Low Stock -->
+        <div class="bg-white rounded-lg shadow p-6 border-t-4 border-yellow-500">
+            <h3 class="text-gray-500 uppercase text-sm font-medium">Low Stock</h3>
+            <p class="text-2xl font-bold mt-2 text-yellow-600">{{ low_stock }}</p>
+        </div>
+        
+        <!-- Out of Stock -->
+        <div class="bg-white rounded-lg shadow p-6 border-t-4 border-red-500">
+            <h3 class="text-gray-500 uppercase text-sm font-medium">Out of Stock</h3>
+            <p class="text-2xl font-bold mt-2 text-red-600">{{ out_of_stock }}</p>
+        </div>
+        
+        <!-- Total Value -->
+        <div class="bg-white rounded-lg shadow p-6 border-t-4 border-green-500">
+            <h3 class="text-gray-500 uppercase text-sm font-medium">Total Value</h3>
+            <p class="text-2xl font-bold mt-2 text-green-600">${{ total_value|floatformat:2 }}</p>
+        </div>
+    </div>
+    
+    <!-- Recent Activity and Alerts -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Recent Movements -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-lg font-semibold text-gray-800">Recent Stock Movements</h2>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Product</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Quantity</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for movement in recent_movements %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                {{ movement.product.name }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {{ movement.get_movement_type_display }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {{ movement.quantity }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {{ movement.created_at|date:"M d, Y" }}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">
+                                No recent movements
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Active Alerts -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-lg font-semibold text-gray-800">Active Alerts</h2>
+            </div>
+            <div class="overflow-y-auto max-h-96">
+                {% for alert in active_alerts %}
+                <div class="p-4 border-b border-gray-200 hover:bg-gray-50">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0 pt-1">
+                            <div class="h-5 w-5 rounded-full bg-red-500 flex items-center justify-center">
+                                <svg class="h-3 w-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="ml-3 flex-1">
+                            <h3 class="text-sm font-medium text-gray-800">
+                                {{ alert.product.name }} - {{ alert.get_alert_type_display }}
+                            </h3>
+                            <p class="text-sm text-gray-500 mt-1">
+                                {{ alert.message }}
+                            </p>
+                            <p class="text-xs text-gray-400 mt-2">
+                                {{ alert.created_at|timesince }} ago
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="p-4 text-center text-sm text-gray-500">
+                    No active alerts
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,214 @@
+{% extends "inventory/base_inventory.html" %}
+
+{% load static %}
+{% load humanize %}
+
+{% block inventory_title %}Inventory Report{% endblock %}
+{% block inventory_heading %}Inventory Report{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'inventory/css/reports.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Filter Form -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h2 class="h5 mb-0">Filter Report</h2>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3" aria-label="Inventory report filters">
+                <!-- Category Filter -->
+                <div class="col-md-3">
+                    <label for="category" class="form-label">Category</label>
+                    <select name="category" id="category" class="form-select">
+                        <option value="">All Categories</option>
+                        {% for category in all_categories %}
+                        <option value="{{ category.id }}" 
+                            {% if request.GET.category == category.id|stringformat:"s" %}selected{% endif %}>
+                            {{ category.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- Stock Status Filter -->
+                <div class="col-md-3">
+                    <label for="stock_status" class="form-label">Stock Status</label>
+                    <select name="stock_status" id="stock_status" class="form-select">
+                        <option value="">All Statuses</option>
+                        <option value="out_of_stock" {% if request.GET.stock_status == 'out_of_stock' %}selected{% endif %}>
+                            Out of Stock
+                        </option>
+                        <option value="low_stock" {% if request.GET.stock_status == 'low_stock' %}selected{% endif %}>
+                            Low Stock
+                        </option>
+                    </select>
+                </div>
+                
+                <!-- Movement Type Filter -->
+                <div class="col-md-3">
+                    <label for="movement_type" class="form-label">Movement Type</label>
+                    <select name="movement_type" id="movement_type" class="form-select">
+                        <option value="">All Types</option>
+                        <option value="in" {% if request.GET.movement_type == 'in' %}selected{% endif %}>
+                            Incoming
+                        </option>
+                        <option value="out" {% if request.GET.movement_type == 'out' %}selected{% endif %}>
+                            Outgoing
+                        </option>
+                    </select>
+                </div>
+                
+                <!-- Date Range -->
+                <div class="col-md-3">
+                    <label for="start_date" class="form-label">Date Range</label>
+                    <div class="input-group">
+                        <input type="date" name="start_date" id="start_date" class="form-control"
+                               value="{{ request.GET.start_date }}" placeholder="Start">
+                        <input type="date" name="end_date" id="end_date" class="form-control"
+                               value="{{ request.GET.end_date }}" placeholder="End">
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="col-md-12 d-flex justify-content-end mt-2">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <i class="bi bi-filter"></i> Apply Filters
+                    </button>
+                    <a href="?" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-counterclockwise"></i> Reset
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Summary Stats -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card bg-light">
+                <div class="card-body text-center">
+                    <h3 class="h5 card-title">Total Products</h3>
+                    <p class="display-4">{{ inventory_summary.total_products }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body text-center">
+                    <h3 class="h5 card-title">Out of Stock</h3>
+                    <p class="display-4">{{ inventory_summary.out_of_stock }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card bg-warning">
+                <div class="card-body text-center">
+                    <h3 class="h5 card-title">Low Stock</h3>
+                    <p class="display-4">{{ inventory_summary.low_stock }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h3 class="h5 card-title">Total Value</h3>
+                    <p class="display-4">KSh {{ inventory_summary.total_value|floatformat:2|intcomma }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stock Movements -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h2 class="h5 mb-0">Recent Stock Movements</h2>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover" aria-label="Recent stock movements">
+                    <thead class="table-light">
+                        <tr>
+                            <th scope="col">Date</th>
+                            <th scope="col">Product</th>
+                            <th scope="col">Type</th>
+                            <th scope="col">Quantity</th>
+                            <th scope="col">Reference</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for movement in stock_movements %}
+                        <tr>
+                            <td>{{ movement.created_at|date:"d/m/Y H:i" }}</td>
+                            <td>{{ movement.product.name }}</td>
+                            <td>
+                                <span class="badge 
+                                    {% if movement.movement_type == 'in' %}bg-success
+                                    {% else %}bg-danger
+                                    {% endif %}">
+                                    {{ movement.get_movement_type_display }}
+                                </span>
+                            </td>
+                            <td>{{ movement.quantity|intcomma }}</td>
+                            <td>{{ movement.reference|default:"-" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center py-4">No stock movements found for selected filters</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Distribution -->
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h2 class="h5 mb-0">Category Distribution</h2>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="table-responsive">
+                        <table class="table" aria-label="Category distribution">
+                            <thead>
+                                <tr>
+                                    <th>Category</th>
+                                    <th>Items</th>
+                                    <th>Value</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for category in categories %}
+                                <tr>
+                                    <td>{{ category.category__name|default:"Uncategorized" }}</td>
+                                    <td>{{ category.count }} ({{ category.percentage|floatformat:1 }}%)</td>
+                                    <td>KSh {{ category.total_value|floatformat:2|intcomma }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="3" class="text-center">No category data available</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="h-100 d-flex align-items-center justify-content-center">
+                        <canvas id="categoryChart" height="250" aria-label="Category distribution chart" role="img"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

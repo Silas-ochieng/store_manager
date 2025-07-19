@@ -1,0 +1,13 @@
+{% extends "base/base.html" %}
+{% block content %}
+  <h1>Stock Movements</h1>
+  <ul>
+    {% for movement in movements %}
+      <li>
+        {{ movement.movement_type }}: {{ movement.product.name }} ({{ movement.quantity }}) on {{ movement.created_at }}
+      </li>
+    {% empty %}
+      <li>No stock movements found.</li>
+    {% endfor %}
+  </ul>
+{% endblock %}

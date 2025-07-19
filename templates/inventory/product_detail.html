@@ -1,0 +1,285 @@
+{% extends "inventory/base_inventory.html" %}
+{% load humanize %}
+
+{% block inventory_title %}{{ product.name }} - Product Details{% endblock %}
+
+{% block inventory_heading %}{{ product.name }}{% endblock %}
+
+{% block inventory_actions %}
+<a href="{% url 'inventory:product_update' slug=product.slug %}" class="btn btn-edit tw-flex tw-items-center">
+    <svg class="tw-w-4 tw-h-4 tw-mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+    </svg>
+    Edit Product
+</a>
+{% endblock %}
+
+{% block inventory_content %}
+<div class="tw-grid tw-grid-cols-1 lg:tw-grid-cols-3 tw-gap-6">
+    <!-- Main Product Info -->
+    <div class="lg:tw-col-span-2">
+        <div class="card">
+            <div class="card-header tw-flex tw-justify-between tw-items-center">
+                <h2 class="tw-text-lg tw-font-medium">Product Information</h2>
+                <span class="badge {% if product.stock_status == 'In Stock' %}badge-success{% elif product.stock_status == 'Low Stock' %}badge-warning{% else %}badge-danger{% endif %}">
+                    {{ product.stock_status }}
+                </span>
+            </div>
+            <div class="card-body">
+                <div class="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-4">
+                    <div>
+                        <h3 class="tw-text-sm tw-font-medium tw-text-gray-500">Description</h3>
+                        <p class="tw-mt-1 tw-text-gray-900">{{ product.description|default:"No description available" }}</p>
+                    </div>
+                    <div>
+                        <h3 class="tw-text-sm tw-font-medium tw-text-gray-500">Categories</h3>
+                        <div class="tw-mt-1 tw-flex tw-flex-wrap tw-gap-2">
+                            {% for category in product.category.get_ancestors %}
+                            <span class="category-badge">{{ category.name }}</span>
+                            {% endfor %}
+                            <span class="category-badge tw-bg-blue-100 tw-text-blue-800">
+                                {{ product.category.name }}
+                            </span>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="tw-text-sm tw-font-medium tw-text-gray-500">Pricing</h3>
+                        <div class="tw-mt-1 tw-space-y-1">
+                            <p>Unit Price: <span class="tw-font-medium">${{ product.unit_price|floatformat:2|intcomma }}</span></p>
+                            <p>Cost Price: <span class="tw-font-medium">${{ product.cost_price|floatformat:2|intcomma }}</span></p>
+                            <p>Profit Margin: <span class="tw-font-medium">{{ product.profit_margin }}%</span></p>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="tw-text-sm tw-font-medium tw-text-gray-500">Inventory</h3>
+                        <div class="tw-mt-1 tw-space-y-1">
+                            <p>Current Stock: <span class="tw-font-medium">{{ product.quantity }}</span></p>
+                            <p>Reorder Level: <span class="tw-font-medium">{{ product.reorder_level }}</span></p>
+                            <p>Inventory Value: <span class="tw-font-medium">${{ product.total_value|floatformat:2|intcomma }}</span></p>
+                        </div>
+                    </div>
+                    {% if product.expiry_date %}
+                    <div>
+                        <h3 class="tw-text-sm tw-font-medium tw-text-gray-500">Expiry</h3>
+                        <div class="tw-mt-1 tw-space-y-1">
+                            <p>Expiry Date: <span class="tw-font-medium">{{ product.expiry_date }}</span></p>
+                            <p>Days Remaining: 
+                                <span class="tw-font-medium {% if product.days_to_expiry < 0 %}tw-text-red-600{% elif product.days_to_expiry <= 30 %}tw-text-amber-600{% else %}tw-text-green-600{% endif %}">
+                                    {{ product.days_to_expiry|default:"N/A" }}
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+                    {% endif %}
+                    <div>
+                        <h3 class="tw-text-sm tw-font-medium tw-text-gray-500">Identification</h3>
+                        <div class="tw-mt-1 tw-space-y-1">
+                            <p>SKU: <span class="tw-font-medium">{{ product.sku }}</span></p>
+                            <p>Barcode: <span class="tw-font-medium">{{ product.barcode|default:"Not set" }}</span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stock Movement History -->
+        <div class="card tw-mt-6">
+            <div class="card-header">
+                <h2 class="tw-text-lg tw-font-medium">Recent Stock Movements</h2>
+            </div>
+            <div class="card-body tw-p-0">
+                <div class="tw-overflow-x-auto">
+                    <table class="product-table tw-w-full">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>Quantity</th>
+                                <th>Reference</th>
+                                <th>User</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for movement in movements %}
+                            <tr>
+                                <td>{{ movement.created_at|date:"M d, Y H:i" }}</td>
+                                <td class="tw-capitalize">{{ movement.get_movement_type_display }}</td>
+                                <td class="{% if movement.movement_type == 'purchase' %}tw-text-green-600{% else %}tw-text-red-600{% endif %}">
+                                    {% if movement.movement_type == 'purchase' %}+{% else %}-{% endif %}{{ movement.quantity }}
+                                </td>
+                                <td>{{ movement.reference|default:"-" }}</td>
+                                <td>{{ movement.created_by.get_full_name|default:movement.created_by.username }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="tw-text-center tw-py-4 tw-text-gray-500">No stock movements recorded</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% if movements.count > 5 %}
+                <div class="tw-px-4 tw-py-3 tw-text-right tw-border-t tw-border-gray-200">
+                    <a href="{% url 'inventory:movement_list' %}?product={{ product.id }}" class="tw-text-sm tw-text-blue-600 hover:tw-underline">
+                        View all movements
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="lg:tw-col-span-1">
+        <!-- Product Images -->
+        <div class="card">
+            <div class="card-header tw-flex tw-justify-between tw-items-center">
+                <h2 class="tw-text-lg tw-font-medium">Product Images</h2>
+                <a href="{% url 'inventory:product_image_add' product_id=product.id %}" 
+                   class="tw-text-sm tw-text-blue-600 hover:tw-underline">
+                    Add Image
+                </a>
+            </div>
+            <div class="card-body">
+                {% if product.images.all %}
+                <div class="tw-grid tw-grid-cols-2 tw-gap-4">
+                    {% for image in product.images.all %}
+                    <div class="tw-relative tw-group">
+                        <img src="{{ image.image.url }}" 
+                             alt="{{ image.caption|default:product.name }}" 
+                             class="tw-w-full tw-h-32 tw-object-cover tw-rounded">
+                        <div class="tw-absolute tw-inset-0 tw-bg-black tw-bg-opacity-0 group-hover:tw-bg-opacity-20 tw-transition-all tw-rounded tw-flex tw-items-center tw-justify-center tw-opacity-0 group-hover:tw-opacity-100">
+                            <a href="{% url 'inventory:product_image_delete' pk=image.id %}" 
+                               class="tw-bg-red-500 tw-text-white tw-p-1 tw-rounded-full hover:tw-bg-red-600"
+                               aria-label="Delete image">
+                                <svg class="tw-w-4 tw-h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                </svg>
+                                <span class="tw-sr-only">Delete image</span>
+                            </a>
+                        </div>
+                        {% if image.is_default %}
+                        <span class="tw-absolute tw-top-1 tw-right-1 tw-bg-blue-500 tw-text-white tw-text-xs tw-px-2 tw-py-1 tw-rounded-full">Default</span>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="tw-text-center tw-py-6 tw-text-gray-500">
+                    <svg class="tw-w-12 tw-h-12 tw-mx-auto tw-text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    <p class="tw-mt-2">No images available</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Supplier Information -->
+        <div class="card tw-mt-6">
+            <div class="card-header">
+                <h2 class="tw-text-lg tw-font-medium">Supplier Information</h2>
+            </div>
+            <div class="card-body">
+                <h3 class="tw-font-medium">{{ product.supplier.name }}</h3>
+                <div class="tw-mt-2 tw-space-y-1 tw-text-sm">
+                    <p class="tw-flex tw-items-center">
+                        <svg class="tw-w-4 tw-h-4 tw-mr-2 tw-text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/>
+                            <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/>
+                        </svg>
+                        {{ product.supplier.email }}
+                    </p>
+                    <p class="tw-flex tw-items-center">
+                        <svg class="tw-w-4 tw-h-4 tw-mr-2 tw-text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/>
+                        </svg>
+                        {{ product.supplier.phone }}
+                    </p>
+                    <p class="tw-flex tw-items-start">
+                        <svg class="tw-w-4 tw-h-4 tw-mr-2 tw-text-gray-400 tw-mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
+                        </svg>
+                        {{ product.supplier.address|linebreaksbr }}
+                    </p>
+                </div>
+                <div class="tw-mt-4">
+                    <a href="{% url 'inventory:supplier_detail' pk=product.supplier.id %}" 
+                       class="tw-text-sm tw-text-blue-600 hover:tw-underline">
+                        View supplier details
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card tw-mt-6">
+            <div class="card-header">
+                <h2 class="tw-text-lg tw-font-medium">Quick Actions</h2>
+            </div>
+            <div class="card-body tw-space-y-3">
+                <a href="{% url 'inventory:movement_create' %}?product={{ product.id }}&movement_type=purchase" 
+                   class="tw-block tw-w-full tw-px-4 tw-py-2 tw-bg-green-50 tw-text-green-700 tw-text-sm tw-font-medium tw-rounded tw-text-center hover:tw-bg-green-100">
+                    Record Stock Purchase
+                </a>
+                <a href="{% url 'inventory:movement_create' %}?product={{ product.id }}&movement_type=sale" 
+                   class="tw-block tw-w-full tw-px-4 tw-py-2 tw-bg-blue-50 tw-text-blue-700 tw-text-sm tw-font-medium tw-rounded tw-text-center hover:tw-bg-blue-100">
+                    Record Stock Sale
+                </a>
+                <a href="{% url 'inventory:movement_create' %}?product={{ product.id }}&movement_type=adjustment" 
+                   class="tw-block tw-w-full tw-px-4 tw-py-2 tw-bg-amber-50 tw-text-amber-700 tw-text-sm tw-font-medium tw-rounded tw-text-center hover:tw-bg-amber-100">
+                    Record Stock Adjustment
+                </a>
+                <button onclick="window.print()" 
+                        class="tw-block tw-w-full tw-px-4 tw-py-2 tw-bg-gray-50 tw-text-gray-700 tw-text-sm tw-font-medium tw-rounded tw-text-center hover:tw-bg-gray-100">
+                    Print Product Details
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Barcode Modal (hidden by default) -->
+<div id="barcode-modal" class="tw-fixed tw-inset-0 tw-z-50 tw-hidden tw-items-center tw-justify-center tw-bg-black tw-bg-opacity-50">
+    <div class="tw-bg-white tw-rounded-lg tw-shadow-xl tw-w-full tw-max-w-md">
+        <div class="tw-p-6">
+            <h3 class="tw-text-lg tw-font-medium tw-mb-4">Product Barcode</h3>
+            {% if product.barcode %}
+            <div class="tw-flex tw-justify-center tw-mb-6">
+                <!-- This would be replaced with actual barcode generation in a real app -->
+                <div class="tw-border tw-border-gray-300 tw-p-4 tw-bg-white">
+                    <p class="tw-font-mono tw-text-center tw-text-xl">{{ product.barcode }}</p>
+                    <p class="tw-text-center tw-text-sm tw-mt-2">{{ product.sku }}</p>
+                </div>
+            </div>
+            <div class="tw-flex tw-justify-end tw-space-x-3">
+                <button onclick="printBarcode()" class="btn btn-edit">
+                    Print Barcode
+                </button>
+                <button onclick="closeModal()" class="btn btn-delete">
+                    Close
+                </button>
+            </div>
+            {% else %}
+            <p class="tw-text-gray-600 tw-mb-4">No barcode set for this product.</p>
+            <div class="tw-flex tw-justify-end">
+                <button onclick="closeModal()" class="btn btn-delete">
+                    Close
+                </button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block inventory_extra_js %}
+<script>
+    function showBarcodeModal() {
+        document.getElementById('barcode-modal').classList.remove('tw-hidden');
+    }
+    
+    function closeModal() {
+        document.getElementById('barcode-modal').classList.add('tw-hidden');
+    }
